@@ -63,17 +63,21 @@ public class OfferService {
     }
 
 
-    public double getHighestDiscount(double amountToPay, String bankName) {
-
-        if (amountToPay <= 0) {
-            throw new IllegalArgumentException("amountToPay must be greater than zero.");
-        }
+    public double getHighestDiscount(double amountToPay, String bankName, String paymentInstrument) {
 
         if (bankName == null || bankName.isBlank()) {
             throw new IllegalArgumentException("bankName must not be null or empty.");
         }
+        if (paymentInstrument == null || paymentInstrument.isBlank()) {
+            throw new IllegalArgumentException("paymentInstrument must not be blank.");
+        }
+        if (amountToPay <= 0) {
+            throw new IllegalArgumentException("amountToPay must be greater than zero.");
+        }
 
-        List<Offer> offers = offerRepository.findByBankName(bankName);
+        List<Offer> offers = offerRepository.findByBankNameAndPaymentInstrument(bankName, paymentInstrument);
+
+//        System.out.println("Offers found: " + offers.size());
 
         if(offers.isEmpty()){
             return 0;

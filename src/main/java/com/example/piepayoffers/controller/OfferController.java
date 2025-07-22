@@ -27,7 +27,8 @@ public class OfferController {
     @GetMapping("/highest-discount")
     public ResponseEntity<Map<String, Double>> getHighestDiscount(
             @RequestParam double amountToPay,
-            @RequestParam String bankName) {
+            @RequestParam String bankName,
+            @RequestParam String paymentInstrument) {
 
         if (amountToPay <= 0) {
             throw new IllegalArgumentException("amountToPay must be > 0");
@@ -35,8 +36,11 @@ public class OfferController {
         if (bankName == null || bankName.isBlank()) {
             throw new IllegalArgumentException("bankName is required");
         }
+        if (paymentInstrument == null || paymentInstrument.isBlank()) {
+            throw new IllegalArgumentException("paymentInstrument must not be blank.");
+        }
 
-        double highestDiscount = offerService.getHighestDiscount(amountToPay, bankName);
+        double highestDiscount = offerService.getHighestDiscount(amountToPay, bankName,paymentInstrument);
 
         return ResponseEntity.ok(Map.of("highestDiscountAmount", highestDiscount));
     }
