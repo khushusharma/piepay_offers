@@ -132,14 +132,13 @@ It also provides an API to calculate the **best applicable discount** for a give
 ##  📌  Design Decision
 
 **✅️ Framework & Tech Stack**
-- Java 17 + Spring Boot:
-  Spring Boot was chosen for its simple, powerful REST support, fast setup, and clear layered structure.
-  MySQL is used for reliable, structured storage and good performance for normalized relational data.
+- Spring Boot was chosen for its simple, powerful REST support, fast setup, and clear layered structure.
+- MySQL is used for reliable, structured storage and good performance for normalized relational data.
 
 **✅ Database Schema**
 - Each offer uses offerId (adjustment_id) as a unique business key.
 - discountType, discountValue, percentage, and minAmount are parsed from the summary text because Flipkart’s API does not provide them as explicit fields.
-- banks, paymentInstruments, and emiMonths use @ElementCollection to create normalized link tables, ensuring efficient filtering by bank/payment instrument.
+- banks, paymentInstruments, and emiMonths use **@ElementCollection** to create normalized link tables, ensuring efficient filtering by bank/payment instrument.
 
 **✅ Exception Handling**
 - Instead of cluttering logic with repetitive try-catch blocks, a @ControllerAdvice is used to handle bad input or system errors globally.
@@ -192,9 +191,9 @@ If I had more time to work on this assignment, I would improve it by:
 
 - Add unit and integration tests for parsing logic and APIs.
 - Improve summary parsing to handle more edge cases robustly.
-- Use @Valid request validation for clean input checks.
+- Use **@Valid** request validation for clean input checks.
 - Expand exception handling for DB errors and JSON parse issues.
-- Add OpenAPI/Swagger for easy testing and documentation.
+- Add Swagger for easy testing and documentation.
 - Add caching for hot queries.
 
 ---
