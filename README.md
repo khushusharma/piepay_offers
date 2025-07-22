@@ -2,6 +2,8 @@
 
 A backend service to fetch, store, and serve the best payment offers — inspired by Flipkart’s payment options experience.
 
+---
+
 ## 📑 Table of Contents
 
 - [Overview](#-overview)
@@ -9,11 +11,16 @@ A backend service to fetch, store, and serve the best payment offers — inspire
 - [Tech Stack](#-tech-stack)
 - [Setup & Run](#-setup--run)
 - [API Usage](#-api-usage)
+- [Design Decision](#-design-decision)
 - [Example Database Schema](#-example-database-schema)
+- [Scalability](#-scalability)
+- [Future Improvement](#-future-improvement-)
+- [Sample Flipkart Payload](#-sample-flipkart-payload)
 - [Assumptions](#-assumptions)
 - [Development Branch](#-development-branch)
 - [Author](#-author)
 
+---
 
 ## 📌 Overview
 
@@ -77,10 +84,16 @@ It also provides an API to calculate the **best applicable discount** for a give
 4. **Run the Application**
    ```bash
    mvn spring-boot:run
+   
+5. **By default backend will start on.**
+   ```bash 
+    http://localhost:8080
+   
+---
 
 ## ✅ API Usage
 
-1. **POST API `/offer`**
+**1. POST API `/offer`**
 
 **Description:** Save offers from Flipkart payload JSON.
 
@@ -92,7 +105,7 @@ It also provides an API to calculate the **best applicable discount** for a give
     
    ```
 
-2. **GET API `/highest-discount`**
+**2. GET API `/highest-discount`**
 
 **Description:** Calculate and return the highest possible discount for an order.
 
@@ -114,6 +127,26 @@ It also provides an API to calculate the **best applicable discount** for a give
     }
    ```
 
+---
+
+##  📌  Design Decision
+
+**✅️ Framework & Tech Stack**
+- Java 17 + Spring Boot:
+  Spring Boot was chosen for its simple, powerful REST support, fast setup, and clear layered structure.
+  MySQL is used for reliable, structured storage and good performance for normalized relational data.
+
+**✅ Database Schema**
+- Each offer uses offerId (adjustment_id) as a unique business key.
+- discountType, discountValue, percentage, and minAmount are parsed from the summary text because Flipkart’s API does not provide them as explicit fields.
+- banks, paymentInstruments, and emiMonths use @ElementCollection to create normalized link tables, ensuring efficient filtering by bank/payment instrument.
+
+**✅ Exception Handling**
+- Instead of cluttering logic with repetitive try-catch blocks, a @ControllerAdvice is used to handle bad input or system errors globally.
+- This keeps controllers and services clean and focused on business logic.
+
+---
+
 ## ✅ Example Database Schema
 
 Example `offer` table structure:
@@ -134,20 +167,78 @@ Example `offer` table structure:
 
 ```
 
+---
+
+## ✅ Scalability
+
+**How to handle ~1,000 requests per second for /highest-discount:**
+1. **Efficient Queries:**
+   The current implementation uses proper indexed relational tables (offers, offer_banks, offer_payment_instruments).
+   To scale, ensure indexes on frequently filtered fields like bankName and paymentInstruments so the DB query remains fast.
+2. **Read Replicas:**
+   If traffic grows further, add read replicas for the database.
+   Since the GET endpoint only reads, you can distribute read load across replicas to reduce pressure on the primary DB.
+3. **Caching Layer:**
+   For frequently repeated lookups with the same bankName + paymentInstrument + amountToPay (e.g., common combinations), add an in-memory cache like Redis or use Spring’s built-in **@Cacheable**.
+   This reduces redundant DB hits for the same queries.
+4. **Horizontal Scaling:**
+   Deploy multiple instances of the backend service behind a load balancer (e.g., NGINX, AWS ELB).
+   Spring Boot apps are stateless for this purpose — so they can handle traffic spikes linearly by adding more pods/containers.
+
+--- 
+## ✅ Future Improvement 
+
+If I had more time to work on this assignment, I would improve it by:
+
+- Add unit and integration tests for parsing logic and APIs.
+- Improve summary parsing to handle more edge cases robustly.
+- Use @Valid request validation for clean input checks.
+- Expand exception handling for DB errors and JSON parse issues.
+- Add OpenAPI/Swagger for easy testing and documentation.
+- Add caching for hot queries.
+
+---
+
+## ✅ Sample Flipkart Payload
+
+```json
+{
+  "flipkartOfferApiResponse": {
+    "title": "Partner offers",
+    "offers": [
+      {
+        "adjustment_type": "INSTANT_DISCOUNT",
+        "adjustment_id": "FPO250717182707WJBDJ",
+        "summary": "Additional ₹1500 Off On Credit and Debit Card Transactions",
+        "contributors": {
+          "payment_instrument": ["CREDIT", "EMI_OPTIONS"],
+          "banks": ["HDFC", "ICICI", "SBI"],
+          "emi_months": ["3", "6"]
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
 ## ✅ Assumptions
 
 - This service expects Flipkart-style payment offer payloads.
 - Fallback summary text parsing is used if explicit values are missing.
 - The `application.properties` file is not pushed — developers configure their own.
 
+---
+
 ## ✅ Development Branch
 Development happens under a separate branch (e.g., `feature`).
 
+---
 
 ## ✅ Author
 Khushi Dokwal
 [GitHub](https://github.com/khushusharma)
-
 
 
 
