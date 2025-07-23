@@ -15,18 +15,17 @@ import java.util.Map;
 public class OfferService {
     private final OfferRepository offerRepository;
 
-    public OfferResponse saveOffers(Map<String, Object> flipkartOfferApiResponse) {
+    public OfferResponse saveOffers(Map<String, Object> flipkartPayload) {
 
-        if (flipkartOfferApiResponse == null || flipkartOfferApiResponse.isEmpty()) {
+        if (flipkartPayload == null || flipkartPayload.isEmpty()) {
             throw new IllegalArgumentException("Payload is empty or missing.");
         }
 
-        List<Map<String, Object>> offers = (List<Map<String, Object>>) flipkartOfferApiResponse.get("offers");
+        List<Map<String, Object>> offers = (List<Map<String, Object>>) flipkartPayload.get("offers");
 
-        if (offers == null) {
-            throw new IllegalArgumentException("'offers' key missing in Flipkart payload!");
+        if (offers == null || offers.isEmpty()) {
+            throw new IllegalArgumentException("'offers' list is missing or empty.");
         }
-
 
         int totalIdentified = offers.size();
         int totalNewCreated = 0;
@@ -34,20 +33,36 @@ public class OfferService {
         for (Map<String, Object> offerJson : offers) {
             String offerId = (String) offerJson.get("adjustment_id");
 
-            if (offerId == null || offerId.trim().isEmpty()) {
-                throw new IllegalArgumentException("Missing adjustment_id in one of the offers.");
+            if (offerId == null || offerId.isBlank()) {
+                throw new IllegalArgumentException("One of the offers is missing an 'adjustment_id'.");
             }
 
             boolean exists = offerRepository.findByOfferId(offerId).isPresent();
             if (!exists) {
-                OfferParserUtils.ParsedOfferDetails parsed = OfferParserUtils.parseSummary((String) offerJson.get("summary"));
+                String summary = (String) offerJson.get("summary");
+
+                if (summary == null || summary.isBlank()) {
+                    throw new IllegalArgumentException("Offer with ID " + offerId + " has no 'summary'.");
+                }
+
+                OfferParserUtils.ParsedOfferDetails parsed = OfferParserUtils.parseSummary(summary);
+
+                Map<String, Object> contributors = (Map<String, Object>) offerJson.get("contributors");
+                if (contributors == null) {
+                    throw new IllegalArgumentException("Offer with ID " + offerId + " is missing 'contributors'.");
+                }
+
+                List<String> banks = (List<String>) contributors.get("banks");
+                List<String> paymentInstruments = (List<String>) contributors.get("payment_instrument");
+                List<String> emiMonths = (List<String>) contributors.get("emi_months");
+
                 Offer offer = Offer.builder()
                         .offerId(offerId)
                         .adjustmentType((String) offerJson.get("adjustment_type"))
-                        .summary((String) offerJson.get("summary"))
-                        .banks((List<String>) ((Map<String, Object>) offerJson.get("contributors")).get("banks"))
-                        .paymentInstruments((List<String>) ((Map<String, Object>) offerJson.get("contributors")).get("payment_instrument"))
-                        .emiMonths((List<String>) ((Map<String, Object>) offerJson.get("contributors")).get("emi_months"))
+                        .summary(summary)
+                        .banks(banks)
+                        .paymentInstruments(paymentInstruments)
+                        .emiMonths(emiMonths)
                         .discountType(parsed.getDiscountType())
                         .discountValue(parsed.getDiscountValue())
                         .percentage(parsed.isPercentage())
@@ -65,37 +80,31 @@ public class OfferService {
 
     public double getHighestDiscount(double amountToPay, String bankName, String paymentInstrument) {
 
-        if (bankName == null || bankName.isBlank()) {
-            throw new IllegalArgumentException("bankName must not be null or empty.");
-        }
-        if (paymentInstrument == null || paymentInstrument.isBlank()) {
-            throw new IllegalArgumentException("paymentInstrument must not be blank.");
-        }
         if (amountToPay <= 0) {
-            throw new IllegalArgumentException("amountToPay must be greater than zero.");
+            throw new IllegalArgumentException("'amountToPay' must be greater than zero.");
+        }
+
+        if (bankName == null || bankName.isBlank()) {
+            throw new IllegalArgumentException("'bankName' is required.");
+        }
+
+        if (paymentInstrument == null || paymentInstrument.isBlank()) {
+            throw new IllegalArgumentException("'paymentInstrument' is required.");
         }
 
         List<Offer> offers = offerRepository.findByBankNameAndPaymentInstrument(bankName, paymentInstrument);
 
-//        System.out.println("Offers found: " + offers.size());
-
-        if(offers.isEmpty()){
-            return 0;
-        }
-
         double highestDiscount = 0;
 
         for (Offer offer : offers) {
+
             if (amountToPay < offer.getMinAmount()) {
-                continue; // will skip this offer bcz  it's not applicable
+                continue; // skip if amount does not meet minimum condition
             }
 
-            double discount;
-            if (offer.isPercentage()) {
-                discount = amountToPay * (offer.getDiscountValue() / 100);
-            } else {
-                discount = offer.getDiscountValue();
-            }
+            double discount = offer.isPercentage()
+                    ? amountToPay * (offer.getDiscountValue() / 100.0)
+                    : offer.getDiscountValue();
 
             if (discount > highestDiscount) {
                 highestDiscount = discount;

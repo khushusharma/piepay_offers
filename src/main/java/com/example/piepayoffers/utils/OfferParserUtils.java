@@ -13,26 +13,32 @@ public class OfferParserUtils {
         if (summary.contains("%")) {
             discountType = "PERCENTAGE";
             percentage = true;
-            Pattern pattern = Pattern.compile("(\\d+)%");
-            Matcher matcher = pattern.matcher(summary);
+
+            Pattern percentPattern = Pattern.compile("(\\d+(\\.\\d+)?)%");
+            Matcher matcher = percentPattern.matcher(summary);
             if (matcher.find()) {
                 discountValue = Double.parseDouble(matcher.group(1));
             }
+
         } else {
             discountType = "FLAT";
             percentage = false;
-            Pattern pattern = Pattern.compile("₹\\s*(\\d+)");
-            Matcher matcher = pattern.matcher(summary);
+
+            Pattern flatPattern = Pattern.compile("₹\\s*([\\d,]+)");
+            Matcher matcher = flatPattern.matcher(summary);
             if (matcher.find()) {
-                discountValue = Double.parseDouble(matcher.group(1));
+                discountValue = Double.parseDouble(
+                        matcher.group(1).replace(",", "")
+                );
             }
         }
 
-        Pattern minPattern = Pattern.compile("Min[^₹]*₹\\s*(\\d+[\\,\\d]*)");
+        Pattern minPattern = Pattern.compile("Min[^₹]*₹\\s*([\\d,]+)");
         Matcher minMatcher = minPattern.matcher(summary);
         if (minMatcher.find()) {
-            String minAmountStr = minMatcher.group(1).replace(",", "");
-            minAmount = Double.parseDouble(minAmountStr);
+            minAmount = Double.parseDouble(
+                    minMatcher.group(1).replace(",", "")
+            );
         }
 
         return new ParsedOfferDetails(discountType, discountValue, percentage, minAmount);

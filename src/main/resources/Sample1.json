@@ -1,5 +1,4 @@
 {
-  "flipkartOfferApiResponse": {
   "title": "Partner offers",
   "offers": [
     {
@@ -370,5 +369,4 @@
       "image": "https://img1a.flixcart.com/www/linchpin/fk-cp-pay/hdfc-fa424ee4.svg"
     }
   ]
-}
 }

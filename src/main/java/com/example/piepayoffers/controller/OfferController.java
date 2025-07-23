@@ -16,31 +16,34 @@ public class OfferController {
 
     @PostMapping("/offer")
     public ResponseEntity<OfferResponse> saveOffers(@RequestBody Map<String, Object> payload) {
-        Map<String, Object> flipkartOfferApiResponse = (Map<String, Object>) payload.get("flipkartOfferApiResponse");
-        if (flipkartOfferApiResponse == null) {
-            throw new IllegalArgumentException("'flipkartOfferApiResponse' is missing in request body.");
+        if (payload == null || payload.isEmpty()) {
+            throw new IllegalArgumentException("Request body must not be empty.");
         }
-        OfferResponse response = offerService.saveOffers(flipkartOfferApiResponse);
+
+        OfferResponse response = offerService.saveOffers(payload);
+
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/highest-discount")
     public ResponseEntity<Map<String, Double>> getHighestDiscount(
-            @RequestParam double amountToPay,
+            @RequestParam Double amountToPay,
             @RequestParam String bankName,
             @RequestParam String paymentInstrument) {
 
-        if (amountToPay <= 0) {
-            throw new IllegalArgumentException("amountToPay must be > 0");
-        }
-        if (bankName == null || bankName.isBlank()) {
-            throw new IllegalArgumentException("bankName is required");
-        }
-        if (paymentInstrument == null || paymentInstrument.isBlank()) {
-            throw new IllegalArgumentException("paymentInstrument must not be blank.");
+        if (amountToPay == null || amountToPay <= 0) {
+            throw new IllegalArgumentException("Query param 'amountToPay' must be greater than zero.");
         }
 
-        double highestDiscount = offerService.getHighestDiscount(amountToPay, bankName,paymentInstrument);
+        if (bankName == null || bankName.isBlank()) {
+            throw new IllegalArgumentException("Query param 'bankName' must not be blank.");
+        }
+
+        if (paymentInstrument == null || paymentInstrument.isBlank()) {
+            throw new IllegalArgumentException("Query param 'paymentInstrument' must not be blank.");
+        }
+
+        double highestDiscount = offerService.getHighestDiscount(amountToPay, bankName, paymentInstrument);
 
         return ResponseEntity.ok(Map.of("highestDiscountAmount", highestDiscount));
     }
